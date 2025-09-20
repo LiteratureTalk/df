@@ -1,9 +1,9 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Act Belong Commit Camera</title>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Act Belong Commit Camera</title>
   <style>
     body, html {
       margin: 0;
@@ -55,7 +55,9 @@
       z-index: 2;
     }
 
-    #merge { display: none; }
+    #merge {
+      display: none;
+    }
 
     #preview {
       display: none;
@@ -64,7 +66,8 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0,0,0,0.9);
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
@@ -93,7 +96,7 @@
       color: white;
       font-size: 24px;
       cursor: pointer;
-      background: rgba(0,0,0,0.5);
+      background: rgba(0, 0, 0, 0.5);
       width: 40px;
       height: 40px;
       border-radius: 50%;
@@ -101,26 +104,37 @@
       align-items: center;
       justify-content: center;
     }
+
+    #error-message {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 18px;
+      text-align: center;
+      z-index: 3;
+    }
   </style>
 </head>
 <body>
   <div id="container">
-    <video id="video" autoplay playsinline></video>
+    <video id="video" autoplay playsinline muted></video>
     <canvas id="threejs"></canvas>
     <button id="capture"></button>
     <canvas id="merge"></canvas>
-
     <div id="preview">
       <div class="close-preview" id="close-preview">×</div>
       <img id="preview-img" alt="Your photo">
       <a id="download" download="photo.png">Download</a>
     </div>
+    <div id="error-message"></div>
   </div>
 
   <script type="module">
-    // ✅ Import from CDN (works on GitHub Pages)
-    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-    import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+    import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+    import { GLTFLoader } from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/jsm/loaders/GLTFLoader.js';
 
     const video = document.getElementById('video');
     const captureBtn = document.getElementById('capture');
@@ -130,19 +144,31 @@
     const previewImg = document.getElementById('preview-img');
     const downloadLink = document.getElementById('download');
     const closePreview = document.getElementById('close-preview');
+    const errorMessage = document.getElementById('error-message');
 
     // --- Camera Setup ---
     async function setupCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" },
+          video: { facingMode: 'user' },
           audio: false
         });
         video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          video.play().catch(err => {
+            console.error('Video play error:', err);
+            showError('Failed to start video stream.');
+          });
+        };
       } catch (err) {
-        console.error("Camera error:", err);
-        alert("Camera access denied or unavailable.");
+        console.error('Camera error:', err);
+        showError('Camera access denied or unavailable. Please ensure camera permissions are granted.');
       }
+    }
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
     }
 
     // --- Three.js Setup ---
@@ -176,7 +202,7 @@
       directionalLight.position.set(1, 1, 1);
       scene.add(directionalLight);
 
-      // Fallback object in case logo.glb doesn't load
+      // Fallback object
       const fallbackCube = new THREE.Mesh(
         new THREE.BoxGeometry(1, 1, 1),
         new THREE.MeshPhongMaterial({ color: 0x00ff00, opacity: 0.7, transparent: true })
@@ -184,7 +210,7 @@
 
       const loader = new GLTFLoader();
       loader.load(
-        "./logo.glb",  // must be in same folder as this HTML file
+        './logo.glb',
         (gltf) => {
           model = gltf.scene;
           model.scale.set(0.7, 0.7, 0.7);
@@ -192,7 +218,7 @@
         },
         undefined,
         (error) => {
-          console.error("GLTF load error:", error);
+          console.error('GLTF load error:', error);
           model = fallbackCube;
           scene.add(model);
         }
@@ -213,7 +239,7 @@
     // --- Capture Photo ---
     captureBtn.addEventListener('click', () => {
       if (!video.videoWidth || !video.videoHeight) {
-        alert("Camera not ready yet.");
+        showError('Camera not ready yet. Please wait for the video feed.');
         return;
       }
 
@@ -227,22 +253,23 @@
       ctx.drawImage(video, 0, 0, width, height);
       ctx.drawImage(threeCanvas, 0, 0, width, height);
 
-      const dataUrl = mergeCanvas.toDataURL("image/png", 0.95);
+      const dataUrl = mergeCanvas.toDataURL('image/png', 0.95);
       previewImg.src = dataUrl;
       downloadLink.href = dataUrl;
 
-      preview.style.display = "flex";
+      preview.style.display = 'flex';
     });
 
-    // Close preview
+    // --- Close Preview ---
     closePreview.addEventListener('click', () => {
-      preview.style.display = "none";
-    });
-    preview.addEventListener('click', (e) => {
-      if (e.target === preview) preview.style.display = "none";
+      preview.style.display = 'none';
     });
 
-    // Resize handler
+    preview.addEventListener('click', (e) => {
+      if (e.target === preview) preview.style.display = 'none';
+    });
+
+    // --- Resize Handler ---
     window.addEventListener('resize', () => {
       if (camera && renderer) {
         camera.aspect = window.innerWidth / window.innerHeight;
@@ -251,6 +278,7 @@
       }
     });
 
+    // --- Initialize ---
     setupCamera();
     initThree();
   </script>
