@@ -22,7 +22,6 @@
       overflow: hidden;
     }
 
-    /* Webcam video */
     #video {
       position: absolute;
       top: 0;
@@ -33,7 +32,6 @@
       z-index: 0;
     }
 
-    /* Three.js canvas overlay */
     #threejs {
       position: absolute;
       top: 0;
@@ -44,7 +42,6 @@
       pointer-events: none;
     }
 
-    /* Capture button */
     #capture {
       position: absolute;
       bottom: 20px;
@@ -59,12 +56,8 @@
       z-index: 2;
     }
 
-    /* Hidden merge canvas */
-    #merge {
-      display: none;
-    }
+    #merge { display: none; }
 
-    /* Preview overlay */
     #preview {
       display: none;
       position: absolute;
@@ -108,11 +101,11 @@
     </div>
   </div>
 
-  <!-- Three.js -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
+  <!-- Use ES modules instead of deprecated builds -->
+  <script type="module">
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+    import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
-  <script>
     const video = document.getElementById('video');
     const captureBtn = document.getElementById('capture');
     const threeCanvas = document.getElementById('threejs');
@@ -121,7 +114,7 @@
     const previewImg = document.getElementById('preview-img');
     const downloadLink = document.getElementById('download');
 
-    // --- 1. Setup Camera ---
+    // --- Camera Setup ---
     async function setupCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -135,7 +128,7 @@
       }
     }
 
-    // --- 2. Setup Three.js ---
+    // --- Three.js Setup ---
     let scene, camera, renderer, model;
 
     function initThree() {
@@ -159,7 +152,8 @@
       const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
       scene.add(light);
 
-      const loader = new THREE.GLTFLoader();
+      // Load GLTF model
+      const loader = new GLTFLoader();
       loader.load("logo.glb", (gltf) => {
         model = gltf.scene;
         model.scale.set(0.7, 0.7, 0.7);
@@ -179,7 +173,7 @@
       renderer.render(scene, camera);
     }
 
-    // --- 3. Capture Photo ---
+    // --- Capture Photo ---
     captureBtn.addEventListener('click', () => {
       const width = video.videoWidth;
       const height = video.videoHeight;
@@ -188,32 +182,25 @@
       mergeCanvas.height = height;
       const ctx = mergeCanvas.getContext('2d');
 
-      // Draw video frame
       ctx.drawImage(video, 0, 0, width, height);
-
-      // Draw 3D overlay
       ctx.drawImage(threeCanvas, 0, 0, width, height);
 
-      // Show preview
       const dataUrl = mergeCanvas.toDataURL("image/png");
       previewImg.src = dataUrl;
       downloadLink.href = dataUrl;
       preview.style.display = "flex";
     });
 
-    // Close preview when tapped
     preview.addEventListener('click', () => {
       preview.style.display = "none";
     });
 
-    // Resize for phones
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // --- Start ---
     setupCamera();
     initThree();
   </script>
