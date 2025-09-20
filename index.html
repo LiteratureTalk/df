@@ -100,7 +100,7 @@
     </div>
   </div>
 
-  <!-- Use CDN ES Modules (works with GitHub Pages) -->
+  <!-- Import Three.js + GLTFLoader as ES Modules (NO three.min.js script tags!) -->
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
     import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
@@ -151,6 +151,7 @@
       const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
       scene.add(light);
 
+      // Load GLB model
       const loader = new GLTFLoader();
       loader.load("logo.glb", (gltf) => {
         model = gltf.scene;
