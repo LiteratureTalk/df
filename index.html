@@ -97,6 +97,22 @@
       z-index: 2;
       font-size: 14px;
     }
+
+    .close-preview {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      background: rgba(0,0,0,0.5);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
   </style>
 </head>
 <body>
@@ -108,24 +124,16 @@
     <div id="status">Loading...</div>
 
     <div id="preview">
+      <div class="close-preview" id="close-preview">×</div>
       <img id="preview-img" alt="Your photo">
       <a id="download" download="photo.png">Download</a>
     </div>
   </div>
 
-  <!-- Use modern Three.js ES modules from CDNJS -->
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js",
-        "three/addons/": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/examples/jsm/"
-      }
-    }
-  </script>
-
   <script type="module">
-    import * as THREE from 'three';
-    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    // Import Three.js and GLTFLoader from unpkg (works reliably with GitHub Pages)
+    import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+    import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
 
     const video = document.getElementById('video');
     const captureBtn = document.getElementById('capture');
@@ -135,6 +143,7 @@
     const previewImg = document.getElementById('preview-img');
     const downloadLink = document.getElementById('download');
     const status = document.getElementById('status');
+    const closePreview = document.getElementById('close-preview');
 
     // --- Camera Setup ---
     async function setupCamera() {
@@ -151,10 +160,11 @@
         video.srcObject = stream;
         
         video.addEventListener('loadedmetadata', () => {
-          status.textContent = "Camera ready!";
-          setTimeout(() => {
-            status.style.display = 'none';
-          }, 2000);
+          status.textContent = "Camera ready! Loading 3D model...";
+        });
+        
+        video.addEventListener('canplay', () => {
+          console.log('Video ready to play');
         });
       } catch (err) {
         status.textContent = "Camera access denied or unavailable.";
@@ -206,29 +216,35 @@
         opacity: 0.8
       });
       const fallbackCube = new THREE.Mesh(geometry, material);
-      fallbackCube.position.set(0, 0, 0);
 
-      // Try to load GLTF model
+      // Try to load GLTF model from GitHub Pages
       const loader = new GLTFLoader();
       loader.load(
-        "logo.glb",
+        './logo.glb', // Use relative path for GitHub Pages
         (gltf) => {
           console.log("GLTF loaded successfully");
           model = gltf.scene;
           model.scale.set(0.7, 0.7, 0.7);
           model.position.set(0, 0, 0);
           scene.add(model);
-          status.textContent = "3D model loaded!";
+          status.textContent = "Ready! Tap the button to capture.";
+          setTimeout(() => {
+            status.style.display = 'none';
+          }, 3000);
         },
         (progress) => {
-          console.log('Loading progress:', progress);
+          console.log('Loading progress:', (progress.loaded / progress.total * 100) + '%');
+          status.textContent = `Loading 3D model... ${Math.round(progress.loaded / progress.total * 100)}%`;
         },
         (error) => {
           console.error("GLTF load error:", error);
           // Use fallback cube if model fails to load
           model = fallbackCube;
           scene.add(model);
-          status.textContent = "Using fallback 3D object";
+          status.textContent = "Ready! (Using fallback 3D object)";
+          setTimeout(() => {
+            status.style.display = 'none';
+          }, 3000);
         }
       );
 
@@ -264,23 +280,32 @@
       mergeCanvas.height = height;
       const ctx = mergeCanvas.getContext('2d');
 
-      // Draw video frame
+      // Clear canvas
+      ctx.clearRect(0, 0, width, height);
+
+      // Draw video frame first
       ctx.drawImage(video, 0, 0, width, height);
 
       // Draw Three.js canvas on top
+      ctx.globalCompositeOperation = 'source-over';
       ctx.drawImage(threeCanvas, 0, 0, width, height);
 
       // Create download link
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const dataUrl = mergeCanvas.toDataURL("image/png", 0.95);
       previewImg.src = dataUrl;
       downloadLink.href = dataUrl;
-      downloadLink.download = `act-belong-commit-${Date.now()}.png`;
+      downloadLink.download = `act-belong-commit-${timestamp}.png`;
       
       // Show preview
       preview.style.display = "flex";
     });
 
-    // Close preview when clicked
+    // Close preview handlers
+    closePreview.addEventListener('click', () => {
+      preview.style.display = "none";
+    });
+
     preview.addEventListener('click', (e) => {
       if (e.target === preview) {
         preview.style.display = "none";
@@ -294,6 +319,17 @@
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
       }
+    });
+
+    // Handle orientation change
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => {
+        if (camera && renderer) {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+      }, 100);
     });
 
     // Cleanup on page unload
