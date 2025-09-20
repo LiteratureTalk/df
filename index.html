@@ -86,18 +86,6 @@
       font-weight: bold;
     }
 
-    #status {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      color: white;
-      background: rgba(0,0,0,0.5);
-      padding: 10px;
-      border-radius: 5px;
-      z-index: 2;
-      font-size: 14px;
-    }
-
     .close-preview {
       position: absolute;
       top: 20px;
@@ -121,7 +109,6 @@
     <canvas id="threejs"></canvas>
     <button id="capture"></button>
     <canvas id="merge"></canvas>
-    <div id="status">Loading...</div>
 
     <div id="preview">
       <div class="close-preview" id="close-preview">×</div>
@@ -131,9 +118,9 @@
   </div>
 
   <script type="module">
-    // Import Three.js and GLTFLoader from unpkg (works reliably with GitHub Pages)
-    import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-    import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+    // ✅ Import from CDN (works on GitHub Pages)
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+    import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
     const video = document.getElementById('video');
     const captureBtn = document.getElementById('capture');
@@ -142,34 +129,19 @@
     const preview = document.getElementById('preview');
     const previewImg = document.getElementById('preview-img');
     const downloadLink = document.getElementById('download');
-    const status = document.getElementById('status');
     const closePreview = document.getElementById('close-preview');
 
     // --- Camera Setup ---
     async function setupCamera() {
       try {
-        status.textContent = "Requesting camera access...";
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { 
-            facingMode: "user",
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
-          },
+          video: { facingMode: "user" },
           audio: false
         });
         video.srcObject = stream;
-        
-        video.addEventListener('loadedmetadata', () => {
-          status.textContent = "Camera ready! Loading 3D model...";
-        });
-        
-        video.addEventListener('canplay', () => {
-          console.log('Video ready to play');
-        });
       } catch (err) {
-        status.textContent = "Camera access denied or unavailable.";
         console.error("Camera error:", err);
-        alert("Camera access denied or unavailable. Please check your browser permissions.");
+        alert("Camera access denied or unavailable.");
       }
     }
 
@@ -178,10 +150,8 @@
     let animationId;
 
     function initThree() {
-      // Create scene
       scene = new THREE.Scene();
 
-      // Create camera
       camera = new THREE.PerspectiveCamera(
         75,
         window.innerWidth / window.innerHeight,
@@ -190,7 +160,6 @@
       );
       camera.position.z = 3;
 
-      // Create renderer
       renderer = new THREE.WebGLRenderer({
         canvas: threeCanvas,
         alpha: true,
@@ -200,7 +169,6 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setClearColor(0x000000, 0);
 
-      // Add lighting
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
       scene.add(ambientLight);
 
@@ -208,111 +176,73 @@
       directionalLight.position.set(1, 1, 1);
       scene.add(directionalLight);
 
-      // Create fallback geometry if GLTF fails to load
-      const geometry = new THREE.BoxGeometry(1, 1, 1);
-      const material = new THREE.MeshPhongMaterial({ 
-        color: 0x00ff00,
-        transparent: true,
-        opacity: 0.8
-      });
-      const fallbackCube = new THREE.Mesh(geometry, material);
+      // Fallback object in case logo.glb doesn't load
+      const fallbackCube = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshPhongMaterial({ color: 0x00ff00, opacity: 0.7, transparent: true })
+      );
 
-      // Try to load GLTF model from GitHub Pages
       const loader = new GLTFLoader();
       loader.load(
-        './logo.glb', // Use relative path for GitHub Pages
+        "./logo.glb",  // must be in same folder as this HTML file
         (gltf) => {
-          console.log("GLTF loaded successfully");
           model = gltf.scene;
           model.scale.set(0.7, 0.7, 0.7);
-          model.position.set(0, 0, 0);
           scene.add(model);
-          status.textContent = "Ready! Tap the button to capture.";
-          setTimeout(() => {
-            status.style.display = 'none';
-          }, 3000);
         },
-        (progress) => {
-          console.log('Loading progress:', (progress.loaded / progress.total * 100) + '%');
-          status.textContent = `Loading 3D model... ${Math.round(progress.loaded / progress.total * 100)}%`;
-        },
+        undefined,
         (error) => {
           console.error("GLTF load error:", error);
-          // Use fallback cube if model fails to load
           model = fallbackCube;
           scene.add(model);
-          status.textContent = "Ready! (Using fallback 3D object)";
-          setTimeout(() => {
-            status.style.display = 'none';
-          }, 3000);
         }
       );
 
-      // Start animation loop
       animate();
     }
 
     function animate() {
       animationId = requestAnimationFrame(animate);
-      
-      // Rotate the model if it exists
       if (model) {
         model.rotation.y += 0.01;
         model.rotation.x += 0.005;
       }
-      
-      // Render the scene
       renderer.render(scene, camera);
     }
 
     // --- Capture Photo ---
     captureBtn.addEventListener('click', () => {
       if (!video.videoWidth || !video.videoHeight) {
-        alert("Camera not ready yet. Please wait a moment.");
+        alert("Camera not ready yet.");
         return;
       }
 
       const width = video.videoWidth;
       const height = video.videoHeight;
-
-      // Set up merge canvas
       mergeCanvas.width = width;
       mergeCanvas.height = height;
       const ctx = mergeCanvas.getContext('2d');
 
-      // Clear canvas
       ctx.clearRect(0, 0, width, height);
-
-      // Draw video frame first
       ctx.drawImage(video, 0, 0, width, height);
-
-      // Draw Three.js canvas on top
-      ctx.globalCompositeOperation = 'source-over';
       ctx.drawImage(threeCanvas, 0, 0, width, height);
 
-      // Create download link
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const dataUrl = mergeCanvas.toDataURL("image/png", 0.95);
       previewImg.src = dataUrl;
       downloadLink.href = dataUrl;
-      downloadLink.download = `act-belong-commit-${timestamp}.png`;
-      
-      // Show preview
+
       preview.style.display = "flex";
     });
 
-    // Close preview handlers
+    // Close preview
     closePreview.addEventListener('click', () => {
       preview.style.display = "none";
     });
-
     preview.addEventListener('click', (e) => {
-      if (e.target === preview) {
-        preview.style.display = "none";
-      }
+      if (e.target === preview) preview.style.display = "none";
     });
 
-    // Handle window resize
+    // Resize handler
     window.addEventListener('resize', () => {
       if (camera && renderer) {
         camera.aspect = window.innerWidth / window.innerHeight;
@@ -321,28 +251,6 @@
       }
     });
 
-    // Handle orientation change
-    window.addEventListener('orientationchange', () => {
-      setTimeout(() => {
-        if (camera && renderer) {
-          camera.aspect = window.innerWidth / window.innerHeight;
-          camera.updateProjectionMatrix();
-          renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-      }, 100);
-    });
-
-    // Cleanup on page unload
-    window.addEventListener('beforeunload', () => {
-      if (animationId) {
-        cancelAnimationFrame(animationId);
-      }
-      if (video.srcObject) {
-        video.srcObject.getTracks().forEach(track => track.stop());
-      }
-    });
-
-    // Initialize everything
     setupCamera();
     initThree();
   </script>
