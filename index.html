@@ -3,8 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Logo Camera Overlay</title>
+    <title>Act Belong Commit - 3D Logo Camera</title>
     <style>
+        :root {
+            --abc-purple: #7f3b96;
+            --abc-green: #0eaa54;
+            --abc-blue: #079eda;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -13,7 +19,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--abc-blue) 0%, var(--abc-green) 50%, var(--abc-purple) 100%);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -36,7 +42,7 @@
             color: #333;
             margin-bottom: 30px;
             font-size: 2em;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, var(--abc-blue), var(--abc-green), var(--abc-purple));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -53,22 +59,24 @@
             aspect-ratio: 4/3;
         }
 
-        #videoElement, #canvas, #overlayCanvas {
+        #videoElement {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
-        }
-
-        #canvas {
-            display: none;
+            z-index: 1;
         }
 
         #overlayCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             pointer-events: none;
-            z-index: 10;
+            z-index: 2;
         }
 
         .controls {
@@ -92,34 +100,37 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, var(--abc-green), var(--abc-blue));
             color: white;
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 10px 20px rgba(14, 170, 84, 0.4);
         }
 
         .btn-secondary {
-            background: #f0f0f0;
-            color: #333;
+            background: linear-gradient(135deg, var(--abc-purple), var(--abc-blue));
+            color: white;
         }
 
         .btn-secondary:hover {
-            background: #e0e0e0;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(127, 59, 150, 0.4);
         }
 
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            transform: none;
         }
 
         .logo-controls {
-            background: rgba(240, 240, 240, 0.5);
+            background: linear-gradient(135deg, rgba(127, 59, 150, 0.1), rgba(14, 170, 84, 0.1));
             border-radius: 15px;
             padding: 20px;
             margin-bottom: 20px;
+            border: 2px solid rgba(7, 158, 218, 0.2);
         }
 
         .control-group {
@@ -135,36 +146,44 @@
 
         input[type="range"] {
             width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: #ddd;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, var(--abc-blue), var(--abc-green), var(--abc-purple));
             outline: none;
             -webkit-appearance: none;
+            opacity: 0.7;
+        }
+
+        input[type="range"]:hover {
+            opacity: 1;
         }
 
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: white;
             cursor: pointer;
+            border: 3px solid var(--abc-purple);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
 
         input[type="range"]::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: white;
             cursor: pointer;
-            border: none;
+            border: 3px solid var(--abc-purple);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
 
         .value-display {
             display: inline-block;
             margin-left: 10px;
-            color: #764ba2;
+            color: var(--abc-purple);
             font-weight: 600;
         }
 
@@ -175,9 +194,10 @@
             margin-top: 20px;
             max-height: 300px;
             overflow-y: auto;
-            padding: 10px;
-            background: rgba(240, 240, 240, 0.5);
+            padding: 15px;
+            background: linear-gradient(135deg, rgba(7, 158, 218, 0.1), rgba(14, 170, 84, 0.1));
             border-radius: 15px;
+            border: 2px solid rgba(127, 59, 150, 0.2);
         }
 
         .photo-item {
@@ -187,10 +207,12 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
             transition: transform 0.3s ease;
             cursor: pointer;
+            border: 2px solid transparent;
         }
 
         .photo-item:hover {
             transform: scale(1.05);
+            border-color: var(--abc-green);
         }
 
         .photo-item img {
@@ -209,18 +231,40 @@
         }
 
         .status.loading {
-            background: #fff3cd;
-            color: #856404;
+            background: linear-gradient(135deg, rgba(127, 59, 150, 0.2), rgba(7, 158, 218, 0.2));
+            color: var(--abc-purple);
         }
 
         .status.ready {
-            background: #d4edda;
-            color: #155724;
+            background: linear-gradient(135deg, rgba(14, 170, 84, 0.2), rgba(7, 158, 218, 0.2));
+            color: var(--abc-green);
         }
 
         .status.error {
             background: #f8d7da;
             color: #721c24;
+        }
+
+        .flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .flash.active {
+            animation: flashAnimation 0.5s ease-out;
+        }
+
+        @keyframes flashAnimation {
+            0% { opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { opacity: 0; }
         }
 
         @media (max-width: 600px) {
@@ -243,14 +287,14 @@
 </head>
 <body>
     <div class="container">
-        <h1>📷 3D Logo Camera</h1>
+        <h1>📷 Act Belong Commit - 3D Logo Camera</h1>
         
         <div id="status" class="status loading">Initializing camera...</div>
         
         <div class="camera-container">
-            <video id="videoElement" autoplay></video>
-            <canvas id="canvas"></canvas>
+            <video id="videoElement" autoplay playsinline></video>
             <canvas id="overlayCanvas"></canvas>
+            <div class="flash" id="flash"></div>
         </div>
 
         <div class="logo-controls">
@@ -273,27 +317,33 @@
                 <label>Rotation: <span class="value-display" id="rotValue">0°</span></label>
                 <input type="range" id="logoRotation" min="0" max="360" step="1" value="0">
             </div>
+
+            <div class="control-group">
+                <label>Auto Rotate: <input type="checkbox" id="autoRotate" checked></label>
+            </div>
         </div>
 
         <div class="controls">
             <button id="captureBtn" class="btn-primary" disabled>📸 Capture Photo</button>
             <button id="switchBtn" class="btn-secondary">🔄 Switch Camera</button>
             <button id="downloadAllBtn" class="btn-secondary" disabled>⬇️ Download All</button>
+            <button id="clearBtn" class="btn-secondary" style="background: linear-gradient(135deg, #ff6b6b, #ee5a6f);">🗑️ Clear Gallery</button>
         </div>
 
         <div id="photoGallery"></div>
     </div>
 
     <script>
+        // Global variables
         let video = document.getElementById('videoElement');
-        let canvas = document.getElementById('canvas');
         let overlayCanvas = document.getElementById('overlayCanvas');
-        let ctx = canvas.getContext('2d');
         let captureBtn = document.getElementById('captureBtn');
         let switchBtn = document.getElementById('switchBtn');
         let downloadAllBtn = document.getElementById('downloadAllBtn');
+        let clearBtn = document.getElementById('clearBtn');
         let photoGallery = document.getElementById('photoGallery');
         let statusDiv = document.getElementById('status');
+        let flashDiv = document.getElementById('flash');
         
         let currentStream = null;
         let facingMode = 'user';
@@ -301,6 +351,7 @@
         
         // Three.js variables
         let scene, camera3D, renderer, logoModel;
+        let autoRotateEnabled = true;
         let logoSettings = {
             size: 1,
             x: 0,
@@ -311,87 +362,115 @@
         // Initialize Three.js
         function initThreeJS() {
             scene = new THREE.Scene();
-            camera3D = new THREE.PerspectiveCamera(75, overlayCanvas.width / overlayCanvas.height, 0.1, 1000);
+            
+            // Set up camera
+            camera3D = new THREE.PerspectiveCamera(75, overlayCanvas.clientWidth / overlayCanvas.clientHeight, 0.1, 1000);
             camera3D.position.z = 5;
             
+            // Set up renderer with transparency
             renderer = new THREE.WebGLRenderer({ 
                 canvas: overlayCanvas, 
                 alpha: true,
-                antialias: true 
+                antialias: true,
+                preserveDrawingBuffer: true // Important for capturing the rendered frame
             });
             renderer.setClearColor(0x000000, 0);
+            renderer.setPixelRatio(window.devicePixelRatio);
             
-            // Add ambient light
+            // Add lights
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
             scene.add(ambientLight);
             
-            // Add directional light
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-            directionalLight.position.set(5, 5, 5);
-            scene.add(directionalLight);
+            const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight1.position.set(5, 5, 5);
+            scene.add(directionalLight1);
+            
+            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.3);
+            directionalLight2.position.set(-5, 3, -5);
+            scene.add(directionalLight2);
             
             // Load 3D model
             loadModel();
+            
+            // Handle resize
+            window.addEventListener('resize', onWindowResize);
+            onWindowResize();
             
             // Start animation
             animate();
         }
         
+        function onWindowResize() {
+            const container = overlayCanvas.parentElement;
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            renderer.setSize(width, height);
+            camera3D.aspect = width / height;
+            camera3D.updateProjectionMatrix();
+        }
+        
         function loadModel() {
             const loader = new THREE.GLTFLoader();
             
-            // Try to load the logo.glb file
             loader.load(
                 'logo.glb',
                 function (gltf) {
                     logoModel = gltf.scene;
+                    // Center the model
+                    const box = new THREE.Box3().setFromObject(logoModel);
+                    const center = box.getCenter(new THREE.Vector3());
+                    logoModel.position.sub(center);
+                    
                     scene.add(logoModel);
-                    statusDiv.textContent = '3D logo loaded successfully!';
+                    statusDiv.textContent = '3D logo loaded successfully! Camera ready.';
                     statusDiv.className = 'status ready';
                 },
                 function (xhr) {
-                    console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                    const percentLoaded = (xhr.loaded / xhr.total * 100);
+                    statusDiv.textContent = `Loading 3D model: ${percentLoaded.toFixed(0)}%`;
                 },
                 function (error) {
                     console.warn('Could not load logo.glb, using fallback 3D object');
-                    // Create a fallback 3D object if logo.glb is not found
                     createFallbackLogo();
-                    statusDiv.textContent = 'Using fallback logo (logo.glb not found)';
+                    statusDiv.textContent = 'Using Act Belong Commit fallback logo. Camera ready.';
                     statusDiv.className = 'status ready';
                 }
             );
         }
         
         function createFallbackLogo() {
-            // Create a colorful fallback logo with "ABC" text representation
             const group = new THREE.Group();
             
-            // Create three interconnected rings representing Act, Belong, Commit
-            const geometry = new THREE.TorusGeometry(0.8, 0.2, 8, 20);
+            // Create three interconnected rings with ABC colors
+            const geometry = new THREE.TorusGeometry(0.8, 0.2, 16, 40);
             
-            // Ring 1 - Act (red)
+            // Ring 1 - Act (purple)
             const material1 = new THREE.MeshPhongMaterial({ 
-                color: 0xff4444,
-                emissive: 0xff0000,
-                emissiveIntensity: 0.2
+                color: 0x7f3b96,
+                emissive: 0x7f3b96,
+                emissiveIntensity: 0.2,
+                shininess: 100
             });
             const ring1 = new THREE.Mesh(geometry, material1);
             ring1.position.x = -0.6;
             
             // Ring 2 - Belong (green)
             const material2 = new THREE.MeshPhongMaterial({ 
-                color: 0x44ff44,
-                emissive: 0x00ff00,
-                emissiveIntensity: 0.2
+                color: 0x0eaa54,
+                emissive: 0x0eaa54,
+                emissiveIntensity: 0.2,
+                shininess: 100
             });
             const ring2 = new THREE.Mesh(geometry, material2);
             ring2.rotation.z = Math.PI / 3;
             
             // Ring 3 - Commit (blue)
             const material3 = new THREE.MeshPhongMaterial({ 
-                color: 0x4444ff,
-                emissive: 0x0000ff,
-                emissiveIntensity: 0.2
+                color: 0x079eda,
+                emissive: 0x079eda,
+                emissiveIntensity: 0.2,
+                shininess: 100
             });
             const ring3 = new THREE.Mesh(geometry, material3);
             ring3.position.x = 0.6;
@@ -409,17 +488,10 @@
             requestAnimationFrame(animate);
             
             if (logoModel) {
-                logoModel.rotation.y += 0.01;
+                if (autoRotateEnabled) {
+                    logoModel.rotation.y += 0.01;
+                }
                 updateLogoTransform();
-            }
-            
-            const width = overlayCanvas.clientWidth;
-            const height = overlayCanvas.clientHeight;
-            
-            if (overlayCanvas.width !== width || overlayCanvas.height !== height) {
-                renderer.setSize(width, height);
-                camera3D.aspect = width / height;
-                camera3D.updateProjectionMatrix();
             }
             
             renderer.render(scene, camera3D);
@@ -431,7 +503,133 @@
             logoModel.scale.set(logoSettings.size, logoSettings.size, logoSettings.size);
             logoModel.position.x = logoSettings.x;
             logoModel.position.y = logoSettings.y;
-            logoModel.rotation.z = logoSettings.rotation * Math.PI / 180;
+            if (!autoRotateEnabled) {
+                logoModel.rotation.y = logoSettings.rotation * Math.PI / 180;
+            }
+        }
+        
+        // Camera functions
+        async function startCamera() {
+            try {
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+                
+                const constraints = {
+                    video: {
+                        facingMode: facingMode,
+                        width: { ideal: 1280 },
+                        height: { ideal: 960 }
+                    }
+                };
+                
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = currentStream;
+                
+                video.onloadedmetadata = () => {
+                    captureBtn.disabled = false;
+                    if (!logoModel) {
+                        statusDiv.textContent = 'Camera ready! Loading 3D model...';
+                    }
+                };
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                statusDiv.textContent = 'Error: Unable to access camera. Please allow camera permissions.';
+                statusDiv.className = 'status error';
+            }
+        }
+        
+        async function capturePhoto() {
+            // Create flash effect
+            flashDiv.classList.add('active');
+            setTimeout(() => flashDiv.classList.remove('active'), 500);
+            
+            // Create a canvas for the final composite
+            const compositeCanvas = document.createElement('canvas');
+            const compositeCtx = compositeCanvas.getContext('2d');
+            
+            // Set canvas size to match video
+            compositeCanvas.width = video.videoWidth;
+            compositeCanvas.height = video.videoHeight;
+            
+            // Draw the video frame first
+            compositeCtx.drawImage(video, 0, 0, compositeCanvas.width, compositeCanvas.height);
+            
+            // Force Three.js to render the current frame
+            renderer.render(scene, camera3D);
+            
+            // Get the 3D overlay as an image
+            const overlayDataUrl = renderer.domElement.toDataURL('image/png');
+            
+            // Create an image from the overlay
+            const overlayImg = new Image();
+            overlayImg.onload = () => {
+                // Calculate proper scaling
+                const scaleX = compositeCanvas.width / overlayCanvas.clientWidth;
+                const scaleY = compositeCanvas.height / overlayCanvas.clientHeight;
+                const scale = Math.min(scaleX, scaleY);
+                
+                const overlayWidth = overlayCanvas.clientWidth * scale;
+                const overlayHeight = overlayCanvas.clientHeight * scale;
+                const offsetX = (compositeCanvas.width - overlayWidth) / 2;
+                const offsetY = (compositeCanvas.height - overlayHeight) / 2;
+                
+                // Draw the overlay on top of the video frame
+                compositeCtx.drawImage(overlayImg, offsetX, offsetY, overlayWidth, overlayHeight);
+                
+                // Convert to JPEG for smaller file size
+                const finalDataUrl = compositeCanvas.toDataURL('image/jpeg', 0.92);
+                
+                // Add to gallery
+                addPhotoToGallery(finalDataUrl);
+            };
+            overlayImg.src = overlayDataUrl;
+        }
+        
+        function addPhotoToGallery(dataUrl) {
+            photos.push(dataUrl);
+            
+            const photoItem = document.createElement('div');
+            photoItem.className = 'photo-item';
+            
+            const img = document.createElement('img');
+            img.src = dataUrl;
+            img.title = 'Click to download';
+            img.onclick = () => downloadPhoto(dataUrl, photos.length);
+            
+            photoItem.appendChild(img);
+            photoGallery.insertBefore(photoItem, photoGallery.firstChild);
+            
+            downloadAllBtn.disabled = false;
+        }
+        
+        function downloadPhoto(dataUrl, index) {
+            const link = document.createElement('a');
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+            link.download = `ABC_photo_${timestamp}_${index}.jpg`;
+            link.href = dataUrl;
+            link.click();
+        }
+        
+        function downloadAllPhotos() {
+            photos.forEach((dataUrl, index) => {
+                setTimeout(() => {
+                    downloadPhoto(dataUrl, index + 1);
+                }, index * 500);
+            });
+        }
+        
+        function clearGallery() {
+            if (confirm('Are you sure you want to clear all photos?')) {
+                photos = [];
+                photoGallery.innerHTML = '';
+                downloadAllBtn.disabled = true;
+            }
+        }
+        
+        function switchCamera() {
+            facingMode = facingMode === 'user' ? 'environment' : 'user';
+            startCamera();
         }
         
         // Control handlers
@@ -455,119 +653,24 @@
             document.getElementById('rotValue').textContent = e.target.value + '°';
         });
         
-        // Camera functions
-        async function startCamera() {
-            try {
-                if (currentStream) {
-                    currentStream.getTracks().forEach(track => track.stop());
-                }
-                
-                const constraints = {
-                    video: {
-                        facingMode: facingMode,
-                        width: { ideal: 1280 },
-                        height: { ideal: 960 }
-                    }
-                };
-                
-                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-                video.srcObject = currentStream;
-                
-                video.onloadedmetadata = () => {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    captureBtn.disabled = false;
-                    statusDiv.textContent = 'Camera ready!';
-                    statusDiv.className = 'status ready';
-                };
-            } catch (err) {
-                console.error('Error accessing camera:', err);
-                statusDiv.textContent = 'Error: Unable to access camera';
-                statusDiv.className = 'status error';
-            }
-        }
-        
-        function capturePhoto() {
-            // Draw video frame to canvas
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            // Create a temporary canvas for the 3D overlay
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = canvas.height;
-            const tempCtx = tempCanvas.getContext('2d');
-            
-            // Draw the video frame
-            tempCtx.drawImage(canvas, 0, 0);
-            
-            // Draw the 3D overlay
-            const overlayData = renderer.domElement.toDataURL('image/png');
-            const overlayImg = new Image();
-            overlayImg.onload = () => {
-                // Calculate scaling to maintain aspect ratio
-                const scale = Math.min(canvas.width / overlayCanvas.width, canvas.height / overlayCanvas.height);
-                const overlayWidth = overlayCanvas.width * scale;
-                const overlayHeight = overlayCanvas.height * scale;
-                const offsetX = (canvas.width - overlayWidth) / 2;
-                const offsetY = (canvas.height - overlayHeight) / 2;
-                
-                tempCtx.drawImage(overlayImg, offsetX, offsetY, overlayWidth, overlayHeight);
-                
-                // Get the final image
-                const dataUrl = tempCanvas.toDataURL('image/jpeg', 0.95);
-                
-                // Add to gallery
-                addPhotoToGallery(dataUrl);
-                
-                // Flash effect
-                video.style.opacity = '0';
-                setTimeout(() => {
-                    video.style.opacity = '1';
-                }, 200);
-            };
-            overlayImg.src = overlayData;
-        }
-        
-        function addPhotoToGallery(dataUrl) {
-            photos.push(dataUrl);
-            
-            const photoItem = document.createElement('div');
-            photoItem.className = 'photo-item';
-            
-            const img = document.createElement('img');
-            img.src = dataUrl;
-            img.onclick = () => downloadPhoto(dataUrl, photos.length);
-            
-            photoItem.appendChild(img);
-            photoGallery.appendChild(photoItem);
-            
-            downloadAllBtn.disabled = false;
-        }
-        
-        function downloadPhoto(dataUrl, index) {
-            const link = document.createElement('a');
-            link.download = `photo_with_logo_${index || photos.length}.jpg`;
-            link.href = dataUrl;
-            link.click();
-        }
-        
-        function downloadAllPhotos() {
-            photos.forEach((dataUrl, index) => {
-                setTimeout(() => {
-                    downloadPhoto(dataUrl, index + 1);
-                }, index * 500);
-            });
-        }
-        
-        function switchCamera() {
-            facingMode = facingMode === 'user' ? 'environment' : 'user';
-            startCamera();
-        }
+        document.getElementById('autoRotate').addEventListener('change', (e) => {
+            autoRotateEnabled = e.target.checked;
+            document.getElementById('logoRotation').disabled = e.target.checked;
+        });
         
         // Event listeners
         captureBtn.addEventListener('click', capturePhoto);
         switchBtn.addEventListener('click', switchCamera);
         downloadAllBtn.addEventListener('click', downloadAllPhotos);
+        clearBtn.addEventListener('click', clearGallery);
+        
+        // Keyboard shortcut for capture
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !captureBtn.disabled) {
+                e.preventDefault();
+                capturePhoto();
+            }
+        });
         
         // Initialize
         window.addEventListener('load', () => {
