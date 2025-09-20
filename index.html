@@ -1,7 +1,4 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
+<meta charset="utf-8">
   <title>Act Belong Commit Camera</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   <style>
@@ -14,105 +11,106 @@
       background: black;
       font-family: sans-serif;
     }
+#container {
+position: relative;
+width: 100%;
+height: 100%;
+overflow: hidden;
+}
+/* Webcam video */
+#video {
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+object-fit: cover;
+z-index: 0;
+}
+/* 3D canvas (transparent background) */
+#threejs-canvas {
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+z-index: 1;
+pointer-events: none;
+}
+/* Capture button */
+#capture-btn {
+position: absolute;
+bottom: 20px;
+left: 50%;
+transform: translateX(-50%);
+background: white;
+border-radius: 50%;
+width: 70px;
+height: 70px;
+border: 4px solid #222;
+cursor: pointer;
+z-index: 2;
+}
+/* Hidden canvas for merging video + 3D */
+#snapshot {
+display: none;
+}
+/* Downloaded image preview (optional) */
+#preview {
+display: none;
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: rgba(0,0,0,0.8);
+justify-content: center;
+align-items: center;
+flex-direction: column;
+z-index: 3;
+}
+#preview img {
+max-width: 90%;
+max-height: 70%;
+}
+#download {
+margin-top: 20px;
+background: white;
+padding: 10px 20px;
+border-radius: 10px;
+text-decoration: none;
+color: black;
+font-weight: bold;
+}
+#error-message {
+display: none;
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+color: white;
+font-size: 18px;
+text-align: center;
+z-index: 3;
+}
+</style>
 
-    #container {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-    }
 
-    /* Webcam video */
-    #video {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: 0;
-    }
-
-    /* 3D canvas (transparent background) */
-    #threejs-canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-      pointer-events: none;
-    }
-
-    /* Capture button */
-    #capture-btn {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: white;
-      border-radius: 50%;
-      width: 70px;
-      height: 70px;
-      border: 4px solid #222;
-      cursor: pointer;
-      z-index: 2;
-    }
-
-    /* Hidden canvas for merging video + 3D */
-    #snapshot {
-      display: none;
-    }
-
-    /* Downloaded image preview (optional) */
-    #preview {
-      display: none;
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.8);
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      z-index: 3;
-    }
-
-    #preview img {
-      max-width: 90%;
-      max-height: 70%;
-    }
-
-    #download {
-      margin-top: 20px;
-      background: white;
-      padding: 10px 20px;
-      border-radius: 10px;
-      text-decoration: none;
-      color: black;
-      font-weight: bold;
-    }
-  </style>
-</head>
-<body>
-  <div id="container">
-    <video id="video" autoplay playsinline></video>
+  
+    <video id="video" autoplay playsinline muted></video>
     <canvas id="threejs-canvas"></canvas>
     <button id="capture-btn"></button>
     <canvas id="snapshot"></canvas>
-
-    <div id="preview">
+    
       <img id="preview-img" alt="Your photo">
-      <a id="download" download="photo.png">Download</a>
-    </div>
-  </div>
+      Download
+    
+    
+  
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+    import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js';
 
-  <!-- Three.js -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
-
-  <script>
     const video = document.getElementById('video');
     const threeCanvas = document.getElementById('threejs-canvas');
     const snapshotCanvas = document.getElementById('snapshot');
@@ -120,20 +118,33 @@
     const preview = document.getElementById('preview');
     const previewImg = document.getElementById('preview-img');
     const downloadLink = document.getElementById('download');
+    const errorMessage = document.getElementById('error-message');
 
     // 1. Setup webcam
     async function setupCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
         video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          video.play().catch(err => {
+            console.error('Video play error:', err);
+            showError('Failed to start video stream.');
+          });
+        };
       } catch (err) {
-        alert("Camera access denied or unavailable.");
-        console.error(err);
+        console.error('Camera error:', err);
+        showError('Camera access denied or unavailable. Please ensure camera permissions are granted.');
       }
+    }
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
     }
 
     // 2. Setup Three.js scene
     let scene, camera, renderer, model;
+    let animationId;
     function initThree() {
       scene = new THREE.Scene();
       camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 100);
@@ -145,21 +156,29 @@
       const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
       scene.add(light);
 
+      // Fallback object in case logo.glb doesn't load
+      const fallbackGeometry = new THREE.BoxGeometry(1, 1, 1);
+      const fallbackMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00, opacity: 0.7, transparent: true });
+      const fallbackCube = new THREE.Mesh(fallbackGeometry, fallbackMaterial);
+
       // Load your logo/model (replace "logo.glb" with your file in same folder)
-      const loader = new THREE.GLTFLoader();
+      const loader = new GLTFLoader();
       loader.load("logo.glb", function(gltf) {
         model = gltf.scene;
         model.scale.set(0.5, 0.5, 0.5); // adjust size
         scene.add(model);
       }, undefined, function(err) {
         console.error("Error loading model", err);
+        model = fallbackCube;
+        scene.add(model);
+        showError('Failed to load 3D model. Using fallback.');
       });
 
       animate();
     }
 
     function animate() {
-      requestAnimationFrame(animate);
+      animationId = requestAnimationFrame(animate);
       if (model) {
         model.rotation.y += 0.01; // rotate slowly
       }
@@ -168,6 +187,11 @@
 
     // 3. Capture photo (merge video + 3D)
     captureBtn.addEventListener('click', () => {
+      if (!video.videoWidth || !video.videoHeight) {
+        showError('Camera not ready yet. Please wait for the video feed.');
+        return;
+      }
+
       const width = video.videoWidth;
       const height = video.videoHeight;
 
@@ -195,13 +219,14 @@
 
     // Resize handler
     window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      if (camera && renderer) {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
     });
 
+    // Initialize
     setupCamera();
     initThree();
   </script>
-</body>
-</html>
