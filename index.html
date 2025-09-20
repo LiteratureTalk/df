@@ -319,6 +319,11 @@
             </div>
 
             <div class="control-group">
+                <label>Color Gradient Tint: <span class="value-display" id="tintValue">0%</span></label>
+                <input type="range" id="gradientTint" min="0" max="100" step="1" value="0">
+            </div>
+
+            <div class="control-group">
                 <label>Auto Rotate: <input type="checkbox" id="autoRotate" checked></label>
             </div>
         </div>
@@ -356,7 +361,8 @@
             size: 1,
             x: 0,
             y: 0,
-            rotation: 0
+            rotation: 0,
+            gradientTint: 0
         };
         
         // Initialize Three.js
@@ -555,6 +561,17 @@
             // Draw the video frame first
             compositeCtx.drawImage(video, 0, 0, compositeCanvas.width, compositeCanvas.height);
             
+            // Apply gradient tint if slider value is greater than 0
+            if (logoSettings.gradientTint > 0) {
+                const gradient = compositeCtx.createLinearGradient(0, 0, compositeCanvas.width, compositeCanvas.height);
+                gradient.addColorStop(0, `rgba(127, 59, 150, ${logoSettings.gradientTint / 100 * 0.3})`); // Purple
+                gradient.addColorStop(0.5, `rgba(14, 170, 84, ${logoSettings.gradientTint / 100 * 0.3})`); // Green
+                gradient.addColorStop(1, `rgba(7, 158, 218, ${logoSettings.gradientTint / 100 * 0.3})`); // Blue
+                
+                compositeCtx.fillStyle = gradient;
+                compositeCtx.fillRect(0, 0, compositeCanvas.width, compositeCanvas.height);
+            }
+            
             // Force Three.js to render the current frame
             renderer.render(scene, camera3D);
             
@@ -651,6 +668,11 @@
         document.getElementById('logoRotation').addEventListener('input', (e) => {
             logoSettings.rotation = parseFloat(e.target.value);
             document.getElementById('rotValue').textContent = e.target.value + '°';
+        });
+        
+        document.getElementById('gradientTint').addEventListener('input', (e) => {
+            logoSettings.gradientTint = parseFloat(e.target.value);
+            document.getElementById('tintValue').textContent = e.target.value + '%';
         });
         
         document.getElementById('autoRotate').addEventListener('change', (e) => {
