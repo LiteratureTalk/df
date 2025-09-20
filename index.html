@@ -33,8 +33,8 @@
       z-index: 0;
     }
 
-    /* 3D canvas (transparent background) */
-    #threejs-canvas {
+    /* Three.js canvas overlay */
+    #threejs {
       position: absolute;
       top: 0;
       left: 0;
@@ -45,7 +45,7 @@
     }
 
     /* Capture button */
-    #capture-btn {
+    #capture {
       position: absolute;
       bottom: 20px;
       left: 50%;
@@ -59,12 +59,12 @@
       z-index: 2;
     }
 
-    /* Hidden canvas for merging video + 3D */
-    #snapshot {
+    /* Hidden merge canvas */
+    #merge {
       display: none;
     }
 
-    /* Downloaded image preview (optional) */
+    /* Preview overlay */
     #preview {
       display: none;
       position: absolute;
@@ -72,10 +72,10 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.9);
+      flex-direction: column;
       justify-content: center;
       align-items: center;
-      flex-direction: column;
       z-index: 3;
     }
 
@@ -98,9 +98,9 @@
 <body>
   <div id="container">
     <video id="video" autoplay playsinline></video>
-    <canvas id="threejs-canvas"></canvas>
-    <button id="capture-btn"></button>
-    <canvas id="snapshot"></canvas>
+    <canvas id="threejs"></canvas>
+    <button id="capture"></button>
+    <canvas id="merge"></canvas>
 
     <div id="preview">
       <img id="preview-img" alt="Your photo">
@@ -114,17 +114,20 @@
 
   <script>
     const video = document.getElementById('video');
-    const threeCanvas = document.getElementById('threejs-canvas');
-    const snapshotCanvas = document.getElementById('snapshot');
-    const captureBtn = document.getElementById('capture-btn');
+    const captureBtn = document.getElementById('capture');
+    const threeCanvas = document.getElementById('threejs');
+    const mergeCanvas = document.getElementById('merge');
     const preview = document.getElementById('preview');
     const previewImg = document.getElementById('preview-img');
     const downloadLink = document.getElementById('download');
 
-    // 1. Setup webcam
+    // --- 1. Setup Camera ---
     async function setupCamera() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user" }, // front camera
+          audio: false
+        });
         video.srcObject = stream;
       } catch (err) {
         alert("Camera access denied or unavailable.");
@@ -132,27 +135,37 @@
       }
     }
 
-    // 2. Setup Three.js scene
+    // --- 2. Setup Three.js ---
     let scene, camera, renderer, model;
+
     function initThree() {
       scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 100);
+
+      camera = new THREE.PerspectiveCamera(
+        70,
+        window.innerWidth / window.innerHeight,
+        0.01,
+        100
+      );
       camera.position.z = 2;
 
-      renderer = new THREE.WebGLRenderer({ canvas: threeCanvas, alpha: true, antialias: true });
+      renderer = new THREE.WebGLRenderer({
+        canvas: threeCanvas,
+        alpha: true,
+        antialias: true
+      });
       renderer.setSize(window.innerWidth, window.innerHeight);
 
-      const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
+      const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
       scene.add(light);
 
-      // Load your logo/model (replace "logo.glb" with your file in same folder)
       const loader = new THREE.GLTFLoader();
-      loader.load("logo.glb", function(gltf) {
+      loader.load("logo.glb", (gltf) => {
         model = gltf.scene;
-        model.scale.set(0.5, 0.5, 0.5); // adjust size
+        model.scale.set(0.7, 0.7, 0.7);
         scene.add(model);
-      }, undefined, function(err) {
-        console.error("Error loading model", err);
+      }, undefined, (err) => {
+        console.error("Model load error", err);
       });
 
       animate();
@@ -161,45 +174,46 @@
     function animate() {
       requestAnimationFrame(animate);
       if (model) {
-        model.rotation.y += 0.01; // rotate slowly
+        model.rotation.y += 0.01;
       }
       renderer.render(scene, camera);
     }
 
-    // 3. Capture photo (merge video + 3D)
+    // --- 3. Capture Photo ---
     captureBtn.addEventListener('click', () => {
       const width = video.videoWidth;
       const height = video.videoHeight;
 
-      snapshotCanvas.width = width;
-      snapshotCanvas.height = height;
-      const ctx = snapshotCanvas.getContext('2d');
+      mergeCanvas.width = width;
+      mergeCanvas.height = height;
+      const ctx = mergeCanvas.getContext('2d');
 
-      // Draw video
+      // Draw video frame
       ctx.drawImage(video, 0, 0, width, height);
 
-      // Draw Three.js render
+      // Draw 3D overlay
       ctx.drawImage(threeCanvas, 0, 0, width, height);
 
       // Show preview
-      const dataUrl = snapshotCanvas.toDataURL("image/png");
+      const dataUrl = mergeCanvas.toDataURL("image/png");
       previewImg.src = dataUrl;
       downloadLink.href = dataUrl;
       preview.style.display = "flex";
     });
 
-    // Tap preview to close
+    // Close preview when tapped
     preview.addEventListener('click', () => {
       preview.style.display = "none";
     });
 
-    // Resize handler
+    // Resize for phones
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
+    // --- Start ---
     setupCamera();
     initThree();
   </script>
