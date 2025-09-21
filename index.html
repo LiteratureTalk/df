@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Act Belong Commit - 3D Logo Camera</title>
+    <title>Act Belong Commit DigiCam</title>
     <style>
         :root {
             --abc-purple: #7f3b96;
@@ -565,7 +565,7 @@
                     logoModel.position.sub(center);
                     
                     scene.add(logoModel);
-                    statusDiv.textContent = '✨ Ready to capture';
+                    statusDiv.textContent = '✨ Ready to capture! Feel free to post any photos with the tag #abcbhc25';
                     statusDiv.className = 'status ready';
                 },
                 function (xhr) {
@@ -575,7 +575,7 @@
                 function (error) {
                     console.warn('Could not load logo.glb, using fallback 3D object');
                     createFallbackLogo();
-                    statusDiv.textContent = '✨ Ready to capture';
+                    statusDiv.textContent = '✨ Ready to capture! Feel free to post any photos with the tag #abcbhc25';
                     statusDiv.className = 'status ready';
                 }
             );
